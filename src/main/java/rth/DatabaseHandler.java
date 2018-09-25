@@ -130,14 +130,14 @@ public class DatabaseHandler {
     public void updateColumnValuesByList(String tableName, String columnName, String updatingValue, List<String> distinctValuesToUpdate) {
         // String builder is just easier and fancier way of concatenating strings.
         StringBuilder query = new StringBuilder();
-        // Append to string with standar SQL dialect and variables.
+        // Append to string with standard SQL dialect and variables.
         query.append("UPDATE ").append(tableName);
         // query SET part (selecting which values to update)
         query.append(" SET ").append(columnName).append(" = ").append(updatingValue);
 
         // Creating WHERE Clause, which rows will be affected. Looping over distinctValuesToUpdate.
         query.append(" WHERE ");
-        // Loop uses .size() -1 because the queyr cannot end in " OR;", invalid syntax.
+        // Loop uses .size() -1 because the query cannot end in " OR;", invalid syntax.
         for (int i = 0; i < distinctValuesToUpdate.size() - 1; i++) {
             query.append(columnName).append(" = ").append(distinctValuesToUpdate.get(distinctValuesToUpdate.size() - 1));
             query.append(" OR ");

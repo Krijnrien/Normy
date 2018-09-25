@@ -2,15 +2,9 @@ package rth;
 
 import com.opencsv.CSVWriter;
 import javafx.fxml.FXML;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
-import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -29,8 +23,12 @@ public class Controller {
     public MenuItem exportMenuItem;
     public MenuItem exportAsPivotMenuItem;
     public MenuItem closeMenuItem;
-    public VBox columnSelectionVBox;
-    public TabPane columnTabPane;
+    public ListView<Label> columnNamesListView;
+    public AnchorPane selectionSplitAnchor;
+    public VBox toUpdateDistinctColumnValues;
+    public ListView<Label> distinctColumnValuesListView;
+    public Label valueLabel;
+    public Label totalRowCount;
 
     //Program only contains one data-set thus one SQL table. Variable stores this table and all sql queries in parameters refer to this variable.
     private String table_name = "";
@@ -39,8 +37,7 @@ public class Controller {
     //First level contains the column name as key, the value is another map.
     //Second level contains the original data-set value and what the user inputted as new value.
     //Cannot use list as a list doesn't contain Keys, the keys are the column names used to build the queries.
-    private HashMap<String, HashMap<String, String>> query_map = new HashMap<>();
-
+    private HashMap<String, HashMap<String, List<String>>> query_map = new HashMap<>();
 
     /**
      * Add dataset menu item action. This function executes when this item menu is clicked (or "performed")
@@ -93,10 +90,10 @@ public class Controller {
 
         List<String> log = new ArrayList<>();
 
-        query_map.forEach((columnName, nestedMap) -> nestedMap.forEach((originalValue, updatingValue) -> {
-            log.add("In column '" + columnName + "' all values '" + originalValue + " were updated to '" + updatingValue + "'\n");
-            db.updateColumnValues(table_name, columnName, updatingValue, originalValue);
-        }));
+//        query_map.forEach((selectedColumnNameText, nestedMap) -> nestedMap.forEach((originalValue, updatingValue) -> {
+//            log.add("In column '" + selectedColumnNameText + "' all values '" + originalValue + " were updated to '" + updatingValue + "'\n");
+//            db.updateColumnValues(table_name, selectedColumnNameText, updatingValue, originalValue);
+//        }));
 
         if (logWriter != null) {
             //TODO Add file name, table name and date of processing to file and possible author.
@@ -116,12 +113,12 @@ public class Controller {
         successSavedPopUp();
     }
 
+    @FXML
     private void successSavedPopUp() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Information Dialog");
         alert.setHeaderText("Success");
-        alert.setContentText("New dataset successfully saved to folder");
-
+        alert.setContentText("New data-set successfully saved to folder");
         alert.showAndWait();
     }
 
@@ -133,116 +130,300 @@ public class Controller {
     @FXML
     private void exportAsPivotMenuItemAction() {
         //TODO
-
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Information Dialog");
         alert.setHeaderText("Failed");
         alert.setContentText("Feature not yet implemented!");
 
         alert.showAndWait();
-
-//        successSavedPopUp();
+        //successSavedPopUp();
     }
 
-
     private void createColumnSelection() {
+
         //Instantiate new database (Not gracefully handled since for each function it instantiates and destroys this object, not a problem but not nice coding (time constraint))
         DatabaseHandler db = new DatabaseHandler();
 
         // Create list with all column names as strings
-        List<String> columnNames = db.getColumnNames(table_name);
+        List<String> selectedColumnNameTexts = db.getColumnNames(table_name);
 
-        // Loop over all column names
-        for (String columnName : columnNames) {
-            // Create new checkbox for each column name with the column name as text/label
-            CheckBox box = new CheckBox(columnName);
-            // Create new checkbox event, every time checkbox is checked or unchecked this event is fired.
-            box.selectedProperty().addListener((observableCheckBox, oldCheckBoxValue, newCheckBoxValue) -> {
-                if (box.isSelected()) {
-                    // If the checkbox state is checked
-                    // Create new Tab with checkbox text/label as tab title/name.
-                    Tab tab = new Tab(box.getText());
-
-                    // Get all distinct values of that column in resultset, most common values to least common.
-                    ResultSet distinct_column_values = db.distinctColumnValues(columnName, table_name);
-
-                    // Create scrollpane
-                    ScrollPane scrollPane = new ScrollPane();
-                    // Create Gridpane
-                    GridPane gridPane = new GridPane();
-                    // Set horizontal gap between grid columns to 10px
-                    gridPane.setHgap(10);
-                    // Set gridpane padding to 10px al lsides.
-                    gridPane.setPadding(new Insets(10, 10, 10, 10));
-
-                    // Create 2 labels to explain users what both columns are.
-                    Label currentValueLabel = new Label("Current dataset value");
-                    Label newEnteredValueLabel = new Label("Enter new value to update or leave blank");
-
-                    // Add both above created labels on row 0 of the gridpane.
-                    gridPane.add(currentValueLabel, 0, 0);
-                    gridPane.add(newEnteredValueLabel, 1, 0);
-
-                    // Error handling try-catch block
-                    try {
-                        // Keeping count for gridpane rows, starts at 1 since the above labels started at row 0
-                        int count = 1;
-
-                        // Loop over all distinct values of that column
-                        while (distinct_column_values.next()) {
-                            // Get the column name from the resultset (columnIndex 0 is the count column, how many times the value appeared in that column, is already sorted from highest to lowest)
-                            String distinct_value = distinct_column_values.getString(1);
-                            // Create new label with the distinct value as text
-                            Label label = new Label(distinct_value);
-
-                            // Create new textfield where the user can enter the new value for this distinct value
-                            TextField textField = new TextField();
-                            // Add event handler to the text field. Every time the value changes (thus every keystroke, not when user is done typing)
-                            textField.textProperty().addListener((observableTextField, oldTextFieldValue, newTextFieldValue) -> {
-                                // If the textfield is empty again (when backspacing) remove the value from the query_map. (Otherwise the new value would be updated as null
-                                if (!newTextFieldValue.equals("")) {
-                                    if (!query_map.containsKey(columnName)) {
-                                        query_map.put(columnName, new HashMap<>());
-                                    }
-                                    query_map.get(columnName).put(distinct_value, newTextFieldValue);
-                                } else {
-                                    query_map.get(columnName).remove(distinct_value);
-                                }
-                                System.out.println(query_map);
-                            });
-
-                            // Add original value label to gridPane
-                            gridPane.add(label, 0, count);
-                            // Set original value label to the right of the grid column
-                            GridPane.setHalignment(label, HPos.RIGHT);
-                            // Add textfield to gridPane
-                            gridPane.add(textField, 1, count);
-                            // Increase count so on next loop iteration the new UI controls are added on the right row.
-                            count++;
-                        }
-                    } catch (SQLException e) {
-                        //TODO Error not logged or shown to user. printStackTrace only prints in debugging console in IDE.
-                        e.printStackTrace();
-                    }
-
-                    // Add gridpane to scrollpane
-                    scrollPane.setContent(gridPane);
-                    // Add scrllpane to tab
-                    tab.setContent(scrollPane);
-                    // Add tab to tabpane
-                    columnTabPane.getTabs().add(tab);
-                } else if (!box.isSelected()) {
-                    // If checkbox is unchecked
-
-                    // Remove all references to this column name from the query_map
-                    query_map.remove(columnName);
-                    // Remove the tab from tabPane
-                    columnTabPane.getTabs().removeIf(tab -> tab.getText().equals(box.getText()));
-                }
-            });
-            columnSelectionVBox.getChildren().add(box);
+        //region ListView of all columns names
+        for (String selectedColumnNameText : selectedColumnNameTexts) {
+            columnNamesListView.getItems().add(new Label(selectedColumnNameText));
         }
+
+        //region column name listView selection event
+        columnNamesListView.getSelectionModel().selectedItemProperty().addListener((observableCheckNewCheckBoxValue, oldValue, newValue) -> {
+            String selectedColumnNameText = newValue.getText();
+            distinctColumnValuesListView.getItems().clear();
+            toUpdateDistinctColumnValues.getChildren().clear();
+            totalRowCount.setText("x/x");
+            valueLabel.setText(selectedColumnNameText);
+
+            List<String> unselectedValues = new ArrayList<>();
+
+            try {
+                ResultSet distinctColumnValues = db.distinctColumnValues(selectedColumnNameText, table_name);
+                while (distinctColumnValues.next()) {
+                    String distinctColumnValue = distinctColumnValues.getString(1);
+                    // distinctColumnValuesListView.getItems().add(new Label(distinctColumnValue));
+                    unselectedValues.add(distinctColumnValue);
+                }
+
+                for (String unselectedValue : unselectedValues) {
+//                    if(!unselectedValue.equals(selectedColumnNameText)){
+                        distinctColumnValuesListView.getItems().add(new Label(unselectedValue));
+               //     }
+                }
+
+                distinctColumnValuesListView.getSelectionModel().selectedItemProperty().addListener((observableCheckNewCheckBoxValue2, oldValue2, newValue2) -> {
+                    toUpdateDistinctColumnValues.getChildren().clear();
+
+                    String distinctColumnValueText = newValue2.getText();
+                    System.out.println(distinctColumnValueText);
+
+                    for (String unselectedValue : unselectedValues) {
+                        CheckBox box = new CheckBox(unselectedValue);
+                        toUpdateDistinctColumnValues.getChildren().add(box);
+
+                        //region Checkbox (de)select event handler
+                        box.selectedProperty().addListener((observableCheckBox, oldCheckBoxValue, newCheckBoxValue) -> {
+                            String toUpdateDistinctColumnValueText = box.getText();
+                            if (box.isSelected()) {
+                                // Checkbox is selected
+                                //region Add selection to query_map
+                                if (!query_map.containsKey(selectedColumnNameText)) {
+
+                                    // Not making array inline creation to keep code simple to understand.
+                                    List<String> tempArray = new ArrayList<>();
+                                    tempArray.add(distinctColumnValueText);
+
+                                    // Not making hashMap creation inline to keep simple to understand.
+                                    HashMap<String, List<String>> tempHashMap = new HashMap<>();
+                                    tempHashMap.put(toUpdateDistinctColumnValueText, tempArray);
+
+                                    query_map.put(selectedColumnNameText, tempHashMap);
+                                } else {
+                                    if (!query_map.get(selectedColumnNameText).containsKey(toUpdateDistinctColumnValueText)) {
+                                        // Not making array inline creation to keep code simple to understand.
+                                        List<String> tempArray = new ArrayList<>();
+                                        tempArray.add(distinctColumnValueText);
+                                        query_map.get(selectedColumnNameText).put(toUpdateDistinctColumnValueText, tempArray);
+                                    }
+
+                                    if (!query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).contains(distinctColumnValueText)) {
+                                        query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).add(distinctColumnValueText);
+                                    }
+                                }
+                                //endregion
+                            } else {
+                                // Checkbox is unselected
+                                query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).remove(distinctColumnValueText);
+                            }
+                            System.out.println(query_map);
+                        });
+                        //endregion
+                    }
+                });
+
+            } catch (SQLException e) {
+                //TODO
+            }
+
+            // Loop over all column names
+//            for (String selectedColumnNameText : selectedColumnNameTexts) {
+//                // Create new checkbox for each column name with the column name as text/label
+//                CheckBox box = new CheckBox(selectedColumnNameText);
+//                // Create new checkbox event, every time checkbox is checked or unchecked this event is fired.
+//                box.selectedProperty().addListener((observableCheckBox, oldCheckBoxValue, newCheckBoxValue) -> {
+//                    if (box.isSelected()) {
+//                        // If the checkbox state is checked
+//                        // Get all distinct values of that column in resultSet, most common values to least common.
+//                        ResultSet distinct_column_values = db.distinctColumnValues(selectedColumnNameText, table_name);
+//
+//                        ListView<Label> listview = new ListView<>();
+//                        listview.setPadding(new Insets(10, 10, 10, 10));
+//                        try {
+//                            while (distinct_column_values.next()) {
+//                                listview.getItems().add(new Label(distinct_column_values.getString(1)));
+//                            }
+//                        } catch (SQLException e) {
+//                            //TODO Error not logged or shown to user. printStackTrace only prints in debugging console in IDE.
+//                            e.printStackTrace();
+//                        }
+//
+//                        listview.getSelectionModel().selectedItemProperty().addListener((observableChecknewCheckBoxValue2, oldCheckBoxValueColumnValue2, newCheckBoxValueColumnValue2) -> {
+//                            System.out.println(newCheckBoxValueColumnValue);
+//                        });
+//
+//
+//                        for (String unselected_value : unselectedValues) {
+//                            CheckBox unselectedCheckBoxvalue = new CheckBox(unselected_value);
+//                            vBoxValues2.getChildren().add(unselectedCheckBoxvalue);
+//                            unselectedCheckBoxvalue.selectedProperty().addListener((unselectedBox, oldunselectedBoxValue, newunselectedBoxValue) -> {
+//                                if (unselectedCheckBoxvalue.isSelected()) {
+//
+//                                    //valueTabPane.getTabs().get(tab2-> tab.getText().equals(toUpdateDistinctColumnValueText));
+//                                    unselectedValues.remove(distinctColumnValueText);
+//
+//                                    //If the textfield is empty again (when backspacing)remove the value from the query_map.(Otherwise the new value would be updated as null
+//                                    if (!query_map.containsKey(selectedColumnNameText)) {
+//
+//                                        // Not making array inline creation to keep code simple to understand.
+//                                        List<String> tempArray = new ArrayList<>();
+//                                        tempArray.add(distinctColumnValueText);
+//
+//                                        // Not making hashMap creation inline to keep simple to understand.
+//                                        HashMap<String, List<String>> tempHashMap = new HashMap<>();
+//                                        tempHashMap.put(toUpdateDistinctColumnValueText, tempArray);
+//
+//                                        query_map.put(selectedColumnNameText, tempHashMap);
+//                                    } else {
+//                                        if (!query_map.get(selectedColumnNameText).containsKey(toUpdateDistinctColumnValueText)) {
+//                                            // Not making array inline creation to keep code simple to understand.
+//                                            List<String> tempArray = new ArrayList<>();
+//                                            tempArray.add(distinctColumnValueText);
+//                                            query_map.get(selectedColumnNameText).put(toUpdateDistinctColumnValueText, tempArray);
+//                                        }
+//
+//                                        if (!query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).contains(distinctColumnValueText)) {
+//                                            query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).add(distinctColumnValueText);
+//                                        }
+//                                    }
+//                                } else {
+//                                    query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).remove(distinctColumnValueText);
+//                                }
+//                                System.out.println(query_map);
+//                            });
+//                        }
+//
+//
+//                        // Create VBox
+//                        //VBox vBox = new VBox();
+//
+//                        // Create anchorPane
+//                        AnchorPane valueTabPane = new AnchorPane();
+//                        valueTabPane.setPadding(new Insets(10, 10, 10, 10));
+//
+//
+//                        HBox.setHgrow(valueTabPane, Priority.ALWAYS);
+//
+//                    }
+//                });
+//            }
+        });
+        //endregion END column names listView event handler
+        //endregion END column names listView
     }
+
+    // Error handling try-catch block
+//                    try {
+//                        // Keeping count for gridPane rows, starts at 1 since the above labels started at row 0
+//                        List<String> unselectedValues = new ArrayList<>();
+//                        // Loop over all distinct values of that column
+//                        while (distinct_column_values.next()) {
+//
+//                            String distinct_column_value = distinct_column_values.getString(1);
+//                            unselectedValues.add(distinct_column_value);
+//                            CheckBox newCheckBoxValue = new CheckBox(distinct_column_value);
+//                            listview.getItems().add(new Label(distinct_column_value));
+//
+//                            // Create new checkbox event, every time checkbox is checked or unchecked this event is fired.
+//                            newCheckBoxValue.selectedProperty().addListener((observableChecknewCheckBoxValue, oldCheckBoxValueColumnValue, newCheckBoxValueColumnValue) -> {
+//                                if (newCheckBoxValue.isSelected()) {
+//                                    unselectedValues.remove(toUpdateDistinctColumnValueText);
+//
+//                                    Tab tab = new Tab(toUpdateDistinctColumnValueText);
+//                                    tab.setClosable(false);
+//
+//                                    GridPane gridPane = new GridPane();
+//                                    gridPane.setHgap(10);
+//
+//                                    ScrollPane scrollPaneVbox2 = new ScrollPane();
+//                                    VBox vBoxValues2 = new VBox();
+//                                    vBoxValues2.setPadding(new Insets(10, 10, 10, 10));
+//                                    scrollPaneVbox2.setContent(vBoxValues2);
+//
+//                                    Label valueLabel = new Label(toUpdateDistinctColumnValueText);
+//                                    Label patientCount = new Label("x/x");
+//
+//                                    gridPane.add(valueLabel, 0, 0);
+//                                    gridPane.add(patientCount, 1, 0);
+//                                    gridPane.add(scrollPaneVbox2, 0, 2);
+//
+//                                    tab.setContent(gridPane);
+//                                    valueTabPane.getTabs().add(tab);
+//
+//                                    for (String unselected_value : unselectedValues) {
+//                                        CheckBox unselectedCheckBoxvalue = new CheckBox(unselected_value);
+//                                        vBoxValues2.getChildren().add(unselectedCheckBoxvalue);
+//                                        unselectedCheckBoxvalue.selectedProperty().addListener((unselectedBox, oldunselectedBoxValue, newunselectedBoxValue) -> {
+//                                            if (unselectedCheckBoxvalue.isSelected()) {
+//
+//                                                //valueTabPane.getTabs().get(tab2-> tab.getText().equals(toUpdateDistinctColumnValueText));
+//                                                unselectedValues.remove(distinctColumnValueText);
+//
+//                                                //If the textfield is empty again (when backspacing)remove the value from the query_map.(Otherwise the new value would be updated as null
+//                                                if (!query_map.containsKey(selectedColumnNameText)) {
+//
+//                                                    // Not making array inline creation to keep code simple to understand.
+//                                                    List<String> tempArray = new ArrayList<>();
+//                                                    tempArray.add(distinctColumnValueText);
+//
+//                                                    // Not making hashMap creation inline to keep simple to understand.
+//                                                    HashMap<String, List<String>> tempHashMap = new HashMap<>();
+//                                                    tempHashMap.put(toUpdateDistinctColumnValueText, tempArray);
+//
+//                                                    query_map.put(selectedColumnNameText, tempHashMap);
+//                                                } else {
+//                                                    if (!query_map.get(selectedColumnNameText).containsKey(toUpdateDistinctColumnValueText)) {
+//                                                        // Not making array inline creation to keep code simple to understand.
+//                                                        List<String> tempArray = new ArrayList<>();
+//                                                        tempArray.add(distinctColumnValueText);
+//                                                        query_map.get(selectedColumnNameText).put(toUpdateDistinctColumnValueText, tempArray);
+//                                                    }
+//
+//                                                    if (!query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).contains(distinctColumnValueText)) {
+//                                                        query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).add(distinctColumnValueText);
+//                                                    }
+//                                                }
+//                                            } else {
+//                                                query_map.get(selectedColumnNameText).get(toUpdateDistinctColumnValueText).remove(distinctColumnValueText);
+//                                            }
+//                                            System.out.println(query_map);
+//                                        });
+//                                    }
+//                                } else if (!newCheckBoxValue.isSelected()) {
+//                                    query_map.get(selectedColumnNameText).remove(toUpdateDistinctColumnValueText);
+//                                    // Remove the tab from tabPane
+//                                    valueTabPane.getTabs().removeIf(tab -> tab.getText().equals(toUpdateDistinctColumnValueText));
+//                                }
+//                            });
+//                        }
+//                    } catch (SQLException e) {
+//                        //TODO Error not logged or shown to user. printStackTrace only prints in debugging console in IDE.
+//                        e.printStackTrace();
+//                    }
+//                    selectScrollPane.setContent(vBox);
+//                    hBox.getChildren().add(selectScrollPane);
+//                    hBox.getChildren().add(valueTabPane);
+//
+//                    // Add scrollPane to tab
+//                    columnPane.setContent(hBox);
+//                    // Add tab to tabPane
+//                    columnTabPane.getTabs().add(columnPane);
+//                } else if (!box.isSelected()) {
+//                    // If checkbox is unchecked
+//                    // Remove all references to this column name from the query_map
+//                    query_map.remove(selectedColumnNameText);
+//
+//                    // Remove the tab from tabPane
+//                    columnTabPane.getTabs().removeIf(tab -> tab.getText().equals(box.getText()));
+//                }
+//            });
+//            columnSelectionVBox.getChildren().add(box);
+//        }
+//    }
 
     /**
      * Close applicaiton action
@@ -262,7 +443,8 @@ public class Controller {
      * @param initialDir           Which directory to open first
      * @return
      */
-    private static File fileChooserHandler(Stage ownerWindow, String explorerTitle, String extensionDescription, String extensionFormat, String initialDir) {
+    private static File fileChooserHandler(Stage ownerWindow, String explorerTitle, String
+            extensionDescription, String extensionFormat, String initialDir) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle(explorerTitle);
 
