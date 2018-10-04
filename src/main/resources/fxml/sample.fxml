@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="rth.Controller">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="rth.Controller">
    <children>
       <MenuBar layoutY="2.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <menus>
@@ -28,20 +28,54 @@
         <items>
           <AnchorPane fx:id="selectionSplitAnchor" minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
                <children>
-                  <ListView fx:id="distinctColumnValuesListView" layoutY="201.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="40.0" />
-                  <Label fx:id="valueLabel" layoutY="6.0" text="Column name" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="5.0" />
-                  <Label fx:id="totalRowCount" layoutY="40.0" text="x/x" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="25.0" />
-                  <AnchorPane layoutX="200.0" layoutY="40.0" prefHeight="362.0" prefWidth="500.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="200.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="40.0">
+                  <AnchorPane prefHeight="40.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                      <children>
-                        <ScrollPane prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
-                           <content>
-                              <VBox fx:id="toUpdateDistinctColumnValues" prefHeight="400.0" prefWidth="175.0" />
-                           </content>
-                        </ScrollPane>
+                        <Label fx:id="valueLabel" layoutX="14.0" layoutY="13.0" text="Column name" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="13.0" />
+                        <Label fx:id="totalRowCount" layoutX="146.0" layoutY="13.0" text="x/x" AnchorPane.rightAnchor="240.0" AnchorPane.topAnchor="13.0" />
+                        <Button fx:id="runSelectionButton" layoutX="308.0" layoutY="9.0" mnemonicParsing="false" onAction="#runSelectionButtonAction" text="Run selection" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="9.0" />
+                        <ComboBox fx:id="idColumnComboBox" layoutX="175.0" layoutY="9.0" prefHeight="25.0" prefWidth="125.0" promptText="Select column" AnchorPane.rightAnchor="102.0" AnchorPane.topAnchor="9.0" />
                      </children>
                   </AnchorPane>
+                  <SplitPane dividerPositions="0.5" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="40.0">
+                     <items>
+                        <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                           <children>
+                              <TextField fx:id="searchDistinctValuesTextField" layoutY="1.0" prefHeight="25.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="1.0" />
+                              <ListView fx:id="distinctColumnValuesListView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0" />
+                           </children>
+                        </AnchorPane>
+                        <AnchorPane prefHeight="400.0" prefWidth="200.0">
+                           <children>
+                              <ScrollPane prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
+                                 <content>
+                                    <VBox fx:id="toUpdateDistinctColumnValues" prefHeight="200.0" prefWidth="200.0" />
+                                 </content>
+                              </ScrollPane>
+                              <TextField fx:id="searchToBeUpdatedValuesTextField" layoutY="1.0" prefHeight="25.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="1.0" />
+                           </children>
+                        </AnchorPane>
+                     </items>
+                  </SplitPane>
                </children></AnchorPane>
-          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0" />
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+               <children>
+                  <SplitPane dividerPositions="0.2550335570469799" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    <items>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="163.0" prefWidth="165.0">
+                           <children>
+                              <Button fx:id="getLeftoverSelectionButton" layoutY="2.0" mnemonicParsing="false" onAction="#getLeftoverSelectionButtonAction" text="Get leftover selection" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="2.0" />
+                              <ListView fx:id="leftoverListView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0" />
+                           </children>
+                        </AnchorPane>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="163.0" prefWidth="209.0">
+                           <children>
+                              <Label layoutY="6.0" text="Execution log" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="6.0" />
+                              <ListView fx:id="logListView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0" />
+                           </children>
+                        </AnchorPane>
+                    </items>
+                  </SplitPane>
+               </children></AnchorPane>
         </items>
       </SplitPane>
    </children>
